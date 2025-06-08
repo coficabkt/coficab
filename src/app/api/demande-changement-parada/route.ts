@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
-import { Prisma } from "@prisma/client";
 import nodemailer from "nodemailer";
 
 // 🔵 GET: Filtering, Pagination, and Stats
@@ -10,7 +9,8 @@ export async function GET(req: Request) {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const perPage = parseInt(searchParams.get("perPage") || "10", 10);
 
-  const filters: Prisma.DemandeChangementParadaWhereInput = {};
+  // ✅ Use a general Record type instead of Prisma type
+  const filters: Record<string, unknown> = {};
 
   const nom = searchParams.get("nom");
   const prenom = searchParams.get("prenom");
