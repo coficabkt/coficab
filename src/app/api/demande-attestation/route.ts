@@ -100,7 +100,7 @@ export async function PATCH(req: Request) {
 
       try {
         await transporter.sendMail({
-          from: `"Touil Brahim Service RH" <${process.env.SMTP_USER}>`,
+          from: `"Service RH" <${process.env.SMTP_USER}>`,
           to: updated.email,
           subject: "Mise à jour de votre demande d'attestation",
           text: `Bonjour ${updated.prenom} ${updated.nom},\n\nVotre demande a été mise à jour au statut : ${updated.status}. Vous pouvez récupérer vos documents.\n\nCordialement,\nCoficab`,
