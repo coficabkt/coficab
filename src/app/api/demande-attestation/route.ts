@@ -10,12 +10,17 @@ export async function GET(req: Request) {
   const perPage = parseInt(searchParams.get("perPage") || "10", 10);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   // Use Record<string, unknown> instead of any
   const filters: Record<string, unknown> = {};
 =======
   // ✅ Plain object for filters — no Prisma type
   const filters: { [key: string]: any } = {};
 >>>>>>> 5485e34 (final version)
+=======
+  // Use Record<string, unknown> instead of any
+  const filters: Record<string, unknown> = {};
+>>>>>>> c0d2609 (Resolve merge conflicts)
 
   const nom = searchParams.get("nom");
   const prenom = searchParams.get("prenom");
