@@ -112,7 +112,7 @@ export async function PATCH(req: Request) {
 
       try {
         await transporter.sendMail({
-          from: `"Touil Brahim Service RH" <${process.env.SMTP_USER}>`,
+          from: `"Service RH" <${process.env.SMTP_USER}>`,
           to: updated.email,
           subject: "Mise à jour de votre demande de changement de parada",
           text: `Bonjour ${updated.prenom} ${updated.nom},\n\nVotre demande de changement de parada a été traitée avec succès. Votre nouvelle parada est : ${updated.nouvelleParada}.\n\nCordialement,\nCoficab`,
