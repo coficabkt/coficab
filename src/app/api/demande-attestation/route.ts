@@ -1,95 +1,98 @@
 import { NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
+import { readData, writeData } from "@/app/lib/fileStorage";
 import nodemailer from "nodemailer";
+import { DemandeAttestation } from "@/types";
 
-// 🔵 GET: Filter & Pagination
+// GET: Filter & Pagination
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-
   const page = parseInt(searchParams.get("page") || "1", 10);
   const perPage = parseInt(searchParams.get("perPage") || "10", 10);
 
-  // Use Record<string, unknown> instead of any
-  const filters: Record<string, unknown> = {};
-
-  const nom = searchParams.get("nom");
-  const prenom = searchParams.get("prenom");
-  const matricule = searchParams.get("matricule");
-  const dateFrom = searchParams.get("dateFrom");
-  const dateTo = searchParams.get("dateTo");
-
-  if (nom) filters.nom = { contains: nom, mode: "insensitive" };
-  if (prenom) filters.prenom = { contains: prenom, mode: "insensitive" };
-  if (matricule) filters.matricule = { contains: matricule, mode: "insensitive" };
-  if (dateFrom && dateTo) {
-    filters.createdAt = {
-      gte: new Date(dateFrom),
-      lte: new Date(dateTo),
-    };
-  }
+  const filters = {
+    nom: searchParams.get("nom")?.toLowerCase(),
+    prenom: searchParams.get("prenom")?.toLowerCase(),
+    matricule: searchParams.get("matricule")?.toLowerCase(),
+    dateFrom: searchParams.get("dateFrom"),
+    dateTo: searchParams.get("dateTo"),
+  };
 
   try {
-    const total = await prisma.demandeAttestation.count({ where: filters });
+    const db = readData();
+    const all = db.DemandeAttestation || [];
 
-    const demandes = await prisma.demandeAttestation.findMany({
-      where: filters,
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * perPage,
-      take: perPage,
+    const demandes = all.filter((d: DemandeAttestation) => {
+      const matchNom = !filters.nom || d.nom.toLowerCase().includes(filters.nom);
+      const matchPrenom = !filters.prenom || d.prenom.toLowerCase().includes(filters.prenom);
+      const matchMatricule = !filters.matricule || d.matricule.toLowerCase().includes(filters.matricule);
+      const createdAt = new Date(d.createdAt);
+      const matchDate =
+        (!filters.dateFrom || createdAt >= new Date(filters.dateFrom)) &&
+        (!filters.dateTo || createdAt <= new Date(filters.dateTo));
+      return matchNom && matchPrenom && matchMatricule && matchDate;
     });
 
-    return NextResponse.json({ total, demandes });
-  } catch (error) {
-    console.error("Erreur lors de la récupération:", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la récupération des données." },
-      { status: 500 }
-    );
+    const total = demandes.length;
+    const paginated = demandes
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice((page - 1) * perPage, page * perPage);
+
+    const enCours = demandes.filter((d) => d.status === "en cours").length;
+    const traite = demandes.filter((d) => d.status === "traité").length;
+
+    return NextResponse.json({ total, demandes: paginated, enCours, traite });
+  } catch {
+    return NextResponse.json({ error: "Erreur lors de la récupération des données." }, { status: 500 });
   }
 }
 
-// 🔵 POST: Create a demande
+// POST: Create
 export async function POST(req: Request) {
   const data = await req.json();
 
   try {
-    const created = await prisma.demandeAttestation.create({
-      data: {
-        ...data,
-        status: data.status || "en cours",
-      },
-    });
+    const db = readData();
+    const demandes = db.DemandeAttestation || [];
 
-    return NextResponse.json(created);
-  } catch (error) {
-    console.error("Erreur lors de la création:", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la création." },
-      { status: 500 }
-    );
+    const newEntry: DemandeAttestation = {
+      ...data,
+      id: crypto.randomUUID(),
+      status: data.status || "en cours",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    demandes.push(newEntry);
+    db.DemandeAttestation = demandes;
+    writeData(db);
+
+    return NextResponse.json(newEntry);
+  } catch {
+    return NextResponse.json({ error: "Erreur lors de la création." }, { status: 500 });
   }
 }
 
-// 🔵 PATCH: Update status & send email if needed
+// PATCH: Update status and send email
 export async function PATCH(req: Request) {
-  const { id, status } = await req.json();
-
-  if (!id || !status) {
-    return NextResponse.json(
-      { error: "ID et statut requis." },
-      { status: 400 }
-    );
-  }
+  const { id, status }: { id: string; status: string } = await req.json();
 
   try {
-    const updated = await prisma.demandeAttestation.update({
-      where: { id },
-      data: { status },
-    });
+    const db = readData();
+    const demandes = db.DemandeAttestation || [];
+    const demande = demandes.find((d) => d.id === id);
 
-    let emailMessage = "Aucun email envoyé : pas d'adresse email fournie.";
+    if (!demande) {
+      return NextResponse.json({ error: "Demande non trouvée." }, { status: 404 });
+    }
 
-    if (status === "traité" && updated.email) {
+    demande.status = status;
+    demande.updatedAt = new Date().toISOString();
+    db.DemandeAttestation = demandes;
+    writeData(db);
+
+    let emailMessage = "Aucun email envoyé.";
+
+    if (status === "traité" && demande.email) {
       const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
@@ -100,56 +103,43 @@ export async function PATCH(req: Request) {
 
       try {
         await transporter.sendMail({
-          from: `"Touil Brahim Service RH" <${process.env.SMTP_USER}>`,
-          to: updated.email,
+          from: `"Service RH" <${process.env.SMTP_USER}>`,
+          to: demande.email,
           subject: "Mise à jour de votre demande d'attestation",
-          text: `Bonjour ${updated.prenom} ${updated.nom},\n\nVotre demande a été mise à jour au statut : ${updated.status}. Vous pouvez récupérer vos documents.\n\nCordialement,\nCoficab`,
+          text: `Bonjour ${demande.prenom} ${demande.nom},\n\nVotre demande est maintenant : ${demande.status} vos documents sont disponibles.\n\ncoordialement\n coficab.`,
         });
 
         emailMessage = "Email envoyé avec succès !";
-        console.log("✅ Email envoyé à :", updated.email);
-      } catch (emailError) {
-        console.error("Erreur lors de l'envoi de l'email :", emailError);
+      } catch {
         emailMessage = "Erreur lors de l'envoi de l'email.";
       }
     }
 
-    return NextResponse.json({
-      message: "Statut mis à jour.",
-      emailStatus: emailMessage,
-      updated,
-    });
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour :", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la mise à jour." },
-      { status: 500 }
-    );
+    return NextResponse.json({ updated: demande, emailStatus: emailMessage });
+  } catch {
+    return NextResponse.json({ error: "Erreur lors de la mise à jour." }, { status: 500 });
   }
 }
 
-// 🔵 DELETE: Delete a demande
+// DELETE: Delete demande
 export async function DELETE(req: Request) {
-  const { id } = await req.json();
-
-  if (!id) {
-    return NextResponse.json(
-      { error: "ID requis pour la suppression." },
-      { status: 400 }
-    );
-  }
+  const { id }: { id: string } = await req.json();
 
   try {
-    await prisma.demandeAttestation.delete({
-      where: { id },
-    });
+    const db = readData();
+    const demandes = db.DemandeAttestation || [];
+    const index = demandes.findIndex((d) => d.id === id);
+
+    if (index === -1) {
+      return NextResponse.json({ error: "Demande non trouvée." }, { status: 404 });
+    }
+
+    demandes.splice(index, 1);
+    db.DemandeAttestation = demandes;
+    writeData(db);
 
     return NextResponse.json({ message: "Demande supprimée avec succès." });
-  } catch (error) {
-    console.error("Erreur lors de la suppression :", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la suppression." },
-      { status: 500 }
-    );
+  } catch {
+    return NextResponse.json({ error: "Erreur lors de la suppression." }, { status: 500 });
   }
 }

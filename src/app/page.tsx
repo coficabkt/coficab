@@ -1,6 +1,6 @@
 "use client";
 
-// import Image from "next/image";
+import Image from "next/image";
 import { useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -11,7 +11,7 @@ const demandeSchema = z.object({
   nom: z.string().min(1, "Nom requis"),
   prenom: z.string().min(1, "Prénom requis"),
   email: z.string().email("Email invalide"),
-  matricule: z.string().regex(/^\d{4}$/, "Matricule doit être 4 chiffres"),
+  matricule: z.string().regex(/^[0-9]{4}$/, "Matricule doit être 4 chiffres"),
   objet: z.string().min(1, "Objet requis"),
   departement: z.string().min(1, "Département requis"),
   attestations: z.array(z.string()).min(1, "Au moins une attestation requise"),
@@ -21,13 +21,15 @@ const changementSchema = z.object({
   nom: z.string().min(1, "Nom requis"),
   prenom: z.string().min(1, "Prénom requis"),
   email: z.string().email("Email invalide"),
-  matricule: z.string().regex(/^\d{4}$/, "Matricule doit être 4 chiffres"),
+  matricule: z.string().regex(/^[0-9]{4}$/, "Matricule doit être 4 chiffres"),
   ancienneParada: z.string().min(1, "Ancienne parada requise"),
   nouvelleParada: z.string().min(1, "Nouvelle parada requise"),
   departement: z.string().min(1, "Département requis"),
 });
 
 export default function DemandePage() {
+  const [formType, setFormType] = useState<"attestation" | "changement">("attestation");
+
   const [demandeForm, setDemandeForm] = useState({
     nom: "",
     prenom: "",
@@ -63,11 +65,129 @@ export default function DemandePage() {
     "manufacturing",
   ];
 
+  const paradas = [
+  "DIMACHK",
+  "KHITANO",
+  "MASSJID AL MUSTAPHA",
+  "OULED OUIJH (BANQUE POPULAIRE)",
+  "OULED OUIJH 'BANQUE SG'",
+  "OULED OUIJH CHÂTEAU 'CAFE LOS ANGELES'",
+  "OULED OUIJH MOSQUE RAYAN",
+  "CAFE ISMAILIA",
+  "PHARMACIE EL HADDADA",
+  "BACHAWIYA",
+  "CAFE ALAM",
+  "CAFE HASSNAOUI",
+  "OULED OUIJH (ZIZ)",
+  "OULED OUIJH (PHARMACIE ZOHOUR)",
+  "PHARMACIE ESSOUFI",
+  "ECOLE ABDERRAHMAN NACER",
+  "ECOLE HOMMAN FETOUAKI",
+  "CAFE BROADWAY",
+  "PHARMACIE AZHAROUN",
+  "ASWAK SALAM 'ECOLE ZOHOUR'",
+  "BIR RAMI ALKARD LFILAHI",
+  "ECOLE SAFAA",
+  "MOSQUE TAOUFIK ou HAMAM KAOUMIA",
+  "LHANCHA PHARMACIE (IBN TOUFAIL)",
+  "LHANCHA BIRAMI TAKWIN",
+  "MAGHRIB ARABI (BANQUE POPULAIRE)",
+  "CAFE SIGMA",
+  "MIMOUZA (CIH BANQUE)",
+  "NAFOURA",
+  "SAL COUVERTE BIR RAMI",
+  "ASSAM (KIADA)",
+  "BAB FES / Inwi",
+  "CAFE SPORTIF",
+  "CROISEMENT NKHARHSSA",
+  "MIZAN",
+  "OLYMPIC ITIHAD",
+  "ZONE FRANCHE OULED BOURAHMA",
+  "ROND POINT LA ZONE",
+  "ECOLE OULED BOUREHMA",
+  "20 Août",
+  "TAJHIZ AIN SEBAA MOSQUE ABU BAKR",
+  "AIN SEBAA PONT",
+  "AIN SEBAA (ROND POINT)",
+  "AIN SEBAA TAHOUNA",
+  "AIN SEBAA LBIR",
+  "AMANA",
+  "PHARMACIE NAKHIL",
+  "CAFE NAKHLA",
+  "MASJID AL RHOUFRAN",
+  "PHARMACIE ALWAFA",
+  "PHARMACIE MAGHRIB ARABI (WAFAA)",
+  "QUACHLA",
+  "WAFA 2 AMANA",
+  "WAFA 4 CHÂTEAU",
+  "WAFA 4 IBN ROCHED",
+  "WAFAA ITIHAD NISWI",
+  "CAFE BROJ",
+  "PHARMACIE SMIRI",
+  "CAFE NAJMA DAHBIYA",
+  "FOUARAT (BANQUE CHAABI)",
+  "FOUARAT (CAFE HIDAMOU)",
+  "TERMINUS BUS ALBASSATIN",
+  "TIHRON FEU ROUGE",
+  "OULED AARFA (CAFE JAWHARAT RIF)",
+  "OULED AARFA (Double voix) WIAM",
+  "OULED AARFA (NAJMA DAHABIYA)",
+  "OULED AARFA (PHARMACIE MOSSA)",
+  "OULED AARFA TERMINUS 5",
+  "PHARMACIE KHALID",
+  "HALOUF (3 EME ) MEDIA BOUTIQUE",
+  "ISKANDARIA",
+  "KISARIYA (BANQUE POPULAIRE)",
+  "MOSQUEE MILOUD",
+  "OULED ARFA (TIRMINUS 12)",
+  "PAAM (TIRMINUS 12)",
+  "PHARMACIE NAKHIL",
+  "ROND POINT ENTRER DE LA ZONE",
+  "CAFE HIZAM",
+  "SAKNIA LA RAK",
+  "ATLASS",
+  "ATLASS BMCE BANQUE",
+  "CAFE WRIDA 'meditel'",
+  "DAR CHABAB",
+  "ECOLE MOKHTAR ESSOUSSI",
+  "PHARMACIE BIS MILAH",
+  "CAFE BILAL",
+  "CHNANFA",
+  "CREDIT AGRICOLE",
+  "ECOLE ALMAARIFA (SIDI YAHIA )",
+  "GENDARMERIE ROYALE",
+  "HAMAM ALWAHDA",
+  "PHARMACIE SIDI HYA LGHARB",
+  "ECOLE ALWAHDA",
+  "CAFE France",
+  "HOTEL AMAL",
+  "HAMAM RAHA",
+  "ECOLE RHAWNA",
+  "CAFE JDIAT",
+  "MAROC TELECOM SY",
+  "ADDOHA (MAHATA DAKH)",
+  "CAFE INSAF",
+  "PHARMACIE DEBBAGH",
+  "ALIANCE TERMINUS BUS",
+  "GROUPE 119 DOHA",
+  "JARDIN ALIANCE",
+  "TERAIN ALIANCE",
+  "ISMAILIA CAFE OMAR",
+  "ISMAILIA CAFE ANGELINA",
+  "KASBA BANK CHAABI (ROND-POINT)",
+  "KIYADA KASBA (KARD ALFILAHI)",
+  "KIYADA KASBA (MAROC TELECOM)",
+  "STATION IFRIQUIA (KASBA)",
+  "SUPERMARCHE MERKAL",
+  "TAIBIA 'LA POSTE '",
+  "AUTRES"
+];
+
+
   const handleDemandeChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-
     if (type === "checkbox") {
       const target = e.target as HTMLInputElement;
       const checked = target.checked;
@@ -97,14 +217,12 @@ export default function DemandePage() {
 
   const handleDemandeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const validation = demandeSchema.safeParse(demandeForm);
     if (!validation.success) {
       const message = validation.error.errors[0].message;
       toast.error(`❌ ${message}`);
       return;
     }
-
     setIsSubmittingDemande(true);
     try {
       const res = await fetch("/api/demande-attestation", {
@@ -112,7 +230,6 @@ export default function DemandePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...demandeForm, status: "en cours" }),
       });
-
       if (res.ok) {
         toast.success("✅ Demande d'attestation enregistrée !");
         setDemandeForm({
@@ -137,14 +254,12 @@ export default function DemandePage() {
 
   const handleChangementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const validation = changementSchema.safeParse(changementForm);
     if (!validation.success) {
       const message = validation.error.errors[0].message;
       toast.error(`❌ ${message}`);
       return;
     }
-
     setIsSubmittingChangement(true);
     try {
       const res = await fetch("/api/demande-changement-parada", {
@@ -152,7 +267,6 @@ export default function DemandePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...changementForm, status: "en cours" }),
       });
-
       if (res.ok) {
         toast.success("✅ Demande de changement de parada enregistrée !");
         setChangementForm({
@@ -178,109 +292,69 @@ export default function DemandePage() {
   return (
     <div className="relative bg-gradient-to-br bg-coficab from-blue-950 to-slate-200 min-h-screen flex flex-col items-center justify-center p-6">
       <ToastContainer position="bottom-right" autoClose={4000} />
-       {/* <Image className="absolute left-0 top-0 m-3" src="/logosvgnew.svg" alt="logo coficab" width={300} height={80} /> */}
-      <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-6 ">
-       
-        {/* Demande d'attestation */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-2xl font-semibold text-center mb-4 text-slate-800">
-            Demande d&apos;attestation
-          </h2>
-          <form onSubmit={handleDemandeSubmit} className="space-y-3">
-            {["nom", "prenom", "email", "matricule", "objet"].map((field) => (
-              <input
-                key={field}
-                type={field === "email" ? "email" : "text"}
-                name={field}
-                placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-                value={demandeForm[field as keyof typeof demandeForm] as string}
-                onChange={handleDemandeChange}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            ))}
+<Image className="absolute left-5 top-5 " src="/logosvgnew.svg" width={120} height={60} alt="logo coficab" />
+      <div className="flex gap-4 m-10">
+        {/* <button 
+          onClick={() => setFormType("attestation")}
+          className={`px-4 py-2 rounded-lg font-semibold transition duration-200 ${
+            formType === "attestation"
+              ? "bg-[#020495] text-white"
+              : "bg-white text-[#020495] border border-[#020495]"
+          }`}
+        >
+          Demande d&apos;attestation 
+        </button> */}
+        {/* <button
+          onClick={() => setFormType("changement")}
+          className={`px-4 py-2 rounded-lg font-semibold transition duration-200 ${
+            formType === "changement"
+              ? "bg-[#020495] text-white"
+              : "bg-white text-[#B87333] border border-[#B87333]"
+          }`}
+        >
+          Changement des stations de transport
+        </button> */}
+      </div>
 
-            <select
-              name="departement"
-              value={demandeForm.departement}
-              onChange={handleDemandeChange}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
-              <option value="">Sélectionnez un département</option>
-              {departments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept.charAt(0).toUpperCase() + dept.slice(1)}
-                </option>
-              ))}
-            </select>
-
-            <div>
-              <p className="font-semibold mb-2 text-slate-700">Choisissez les attestations :</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {[
-                  "Attestation de travail",
-                  "attestation de salaire",
-                  "attestation de domiciliation de salaire",
-                  "attestation de restitution de IR",
-                  "bulletin de paie",
-                ].map((attestation) => (
-                  <label
-                    key={attestation}
-                    className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded hover:bg-blue-100 transition cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      name="attestations"
-                      value={attestation}
-                      checked={demandeForm.attestations.includes(attestation)}
-                      onChange={handleDemandeChange}
-                      className="accent-blue-500"
-                    />
-                    <span className="text-slate-700">{attestation}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmittingDemande}
-              className={`w-full ${
-                isSubmittingDemande
-                  ? "bg-blue-300 cursor-not-allowed"
-                  : "bg-blue-500 hover:bg-blue-600"
-              } text-white font-semibold py-2 rounded transition`}
-            >
-              {isSubmittingDemande ? "Envoi en cours..." : "Soumettre la demande"}
-            </button>
-          </form>
-        </div>
-
-        {/* Demande de changement de parada */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-2xl font-semibold text-center mb-4 text-slate-800">
-            Changement de parada
-          </h2>
-          <form onSubmit={handleChangementSubmit} className="space-y-3">
+      <div className="w-full max-w-2xl bg-white rounded-xl shadow-md p-6">
+        {formType === "attestation" ? (
+           <form onSubmit={handleChangementSubmit} className="space-y-3">
+            <h2 className="text-2xl font-semibold text-center mb-4 text-slate-800">
+              Changement Des Stations De Transport
+            </h2>
             {[
               "nom",
               "prenom",
               "email",
               "matricule",
-              "ancienneParada",
-              "nouvelleParada",
             ].map((field) => (
               <input
                 key={field}
                 type={field === "email" ? "email" : "text"}
                 name={field}
-                placeholder={field
-                  .replace(/([A-Z])/g, " $1")
-                  .replace(/^./, (str) => str.toUpperCase())}
+                placeholder={field.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
                 value={changementForm[field as keyof typeof changementForm] as string}
                 onChange={handleChangementChange}
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
               />
             ))}
+
+            {["ancienneParada", "nouvelleParada"].map((field) => (
+              <input
+                key={field}
+                list="parada-list"
+                name={field}
+                placeholder={field.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+                value={changementForm[field as keyof typeof changementForm] as string}
+                onChange={handleChangementChange}
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+              />
+            ))}
+            <datalist id="parada-list">
+              {paradas.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
 
             <select
               name="departement"
@@ -301,14 +375,87 @@ export default function DemandePage() {
               disabled={isSubmittingChangement}
               className={`w-full ${
                 isSubmittingChangement
-                  ? "bg-green-300 cursor-not-allowed"
-                  : "bg-green-500 hover:bg-green-600"
+                  ? "bg-[#B87333] cursor-not-allowed"
+                  : "bg-[#B87333] hover:bg-green-600"
               } text-white font-semibold py-2 rounded transition`}
             >
               {isSubmittingChangement ? "Envoi en cours..." : "Soumettre la demande"}
             </button>
           </form>
-        </div>
+        ) : (
+        
+           <form onSubmit={handleDemandeSubmit} className="space-y-3">
+            <h2 className="text-2xl font-semibold text-center mb-4 text-slate-800">
+              Demande d&apos;attestation
+            </h2>
+            {[
+              { name: "nom", placeholder: "Nom" },
+              { name: "prenom", placeholder: "Prénom" },
+              { name: "email", placeholder: "Email", type: "email" },
+              { name: "matricule", placeholder: "Matricule" },
+              { name: "objet", placeholder: "Objet" },
+            ].map(({ name, placeholder, type = "text" }) => (
+              <input
+                key={name}
+                type={type}
+                name={name}
+                placeholder={placeholder}
+                value={demandeForm[name as keyof typeof demandeForm] as string}
+                onChange={handleDemandeChange}
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            ))}
+
+            <select
+              name="departement"
+              value={demandeForm.departement}
+              onChange={handleDemandeChange}
+              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="">Sélectionnez un département</option>
+              {departments.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept.charAt(0).toUpperCase() + dept.slice(1)}
+                </option>
+              ))}
+            </select>
+
+            <fieldset className="border border-gray-300 rounded px-3 py-2">
+              <legend className="text-sm font-semibold">Attestations demandées</legend>
+              {[
+                "Attestation de Travail",
+                "Attestation de Salaire",
+                "Attestation de domicialisation de salaire",
+                "Attestation de restitution de IR",
+                "Bulletin de paie",
+              ].map((att) => (
+                <label key={att} className="block">
+                  <input
+                    type="checkbox"
+                    name="attestations"
+                    value={att}
+                    checked={demandeForm.attestations.includes(att)}
+                    onChange={handleDemandeChange}
+                    className="mr-2"
+                  />
+                  {att}
+                </label>
+              ))}
+            </fieldset>
+
+            <button
+              type="submit"
+              disabled={isSubmittingDemande}
+              className={`w-full ${
+                isSubmittingDemande
+                  ? "bg-[#020495] cursor-not-allowed"
+                  : "bg-[#020495] hover:bg-blue-600"
+              } text-white font-semibold py-2 rounded transition`}
+            >
+              {isSubmittingDemande ? "Envoi en cours..." : "Soumettre la demande"}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

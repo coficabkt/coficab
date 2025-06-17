@@ -5,6 +5,7 @@ export interface BaseDemande {
   prenom: string;
   matricule: string;
   email: string;
+  updatedAt: string;
   status: string;
   createdAt: string;
   departement?: string; // department is a single string
@@ -20,4 +21,8 @@ export interface DemandeAttestation extends BaseDemande {
 export interface DemandeChangementParada extends BaseDemande {
   ancienneParada: string;
   nouvelleParada: string;
+}
+export interface Database {
+  DemandeAttestation: DemandeAttestation[];
+  DemandeChangementParada: DemandeChangementParada[];
 }

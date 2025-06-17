@@ -1,167 +1,136 @@
 import { NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
 import nodemailer from "nodemailer";
+import { readData, writeData } from "@/app/lib/fileStorage";
+import { v4 as uuidv4 } from "uuid";
 
-// 🔵 GET: Filtering, Pagination, and Stats
+// 🔵 GET
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
+  const { searchParams } = new URL(req.url);
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const perPage = parseInt(searchParams.get("perPage") || "10", 10);
+  const nom = searchParams.get("nom")?.toLowerCase();
+  const prenom = searchParams.get("prenom")?.toLowerCase();
+  const matricule = searchParams.get("matricule");
+  const dateFrom = searchParams.get("dateFrom");
+  const dateTo = searchParams.get("dateTo");
 
-  const page = parseInt(searchParams.get("page") || "1", 10);
-  const perPage = parseInt(searchParams.get("perPage") || "10", 10);
+  let { DemandeChangementParada } = readData();
 
-  // ✅ Use a general Record type instead of Prisma type
-  const filters: Record<string, unknown> = {};
+  if (nom) DemandeChangementParada = DemandeChangementParada.filter(item => item.nom?.toLowerCase().includes(nom));
+  if (prenom) DemandeChangementParada = DemandeChangementParada.filter(item => item.prenom?.toLowerCase().includes(prenom));
+  if (matricule) DemandeChangementParada = DemandeChangementParada.filter(item => item.matricule?.includes(matricule));
+  if (dateFrom && dateTo) {
+    const from = new Date(dateFrom);
+    const to = new Date(dateTo);
+    DemandeChangementParada = DemandeChangementParada.filter(item => {
+      const createdAt = new Date(item.createdAt);
+      return createdAt >= from && createdAt <= to;
+    });
+  }
 
-  const nom = searchParams.get("nom");
-  const prenom = searchParams.get("prenom");
-  const matricule = searchParams.get("matricule");
-  const dateFrom = searchParams.get("dateFrom");
-  const dateTo = searchParams.get("dateTo");
+  const total = DemandeChangementParada.length;
 
-  if (nom) filters.nom = { contains: nom, mode: "insensitive" };
-  if (prenom) filters.prenom = { contains: prenom, mode: "insensitive" };
-  if (matricule) filters.matricule = { contains: matricule, mode: "insensitive" };
-  if (dateFrom && dateTo) {
-    filters.createdAt = {
-      gte: new Date(dateFrom),
-      lte: new Date(dateTo),
-    };
-  }
+    const paginated = DemandeChangementParada
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice((page - 1) * perPage, page * perPage);
+  const enCours = DemandeChangementParada.filter(item => item.status === "en cours").length;
+  const traite = DemandeChangementParada.filter(item => item.status === "traité").length;
+  const demandes = DemandeChangementParada.slice((page - 1) * perPage, page * perPage);
 
-  try {
-    const total = await prisma.demandeChangementParada.count({ where: filters });
-
-    const demandes = await prisma.demandeChangementParada.findMany({
-      where: filters,
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * perPage,
-      take: perPage,
-    });
-
-    const enCours = await prisma.demandeChangementParada.count({
-      where: { ...filters, status: "en cours" },
-    });
-
-    const traite = await prisma.demandeChangementParada.count({
-      where: { ...filters, status: "traité" },
-    });
-
-    return NextResponse.json({
-      total,
-      demandes,
-      enCours,
-      traite,
-    });
-  } catch (error) {
-    console.error("Erreur lors de la récupération:", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la récupération des données." },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({ total, demandes, enCours, traite, paginated });
 }
 
-// 🔵 POST: Create a new demande
+// 🔵 POST
 export async function POST(req: Request) {
-  const data = await req.json();
+  const body = await req.json();
+  const db = readData();
 
-  try {
-    const created = await prisma.demandeChangementParada.create({
-      data: {
-        ...data,
-        status: data.status || "en cours",
-      },
-    });
-    return NextResponse.json(created);
-  } catch (error) {
-    console.error("Erreur lors de la création:", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la création." },
-      { status: 500 }
-    );
-  }
+  const newDemande = {
+    id: uuidv4(),
+    ...body,
+    status: body.status || "en cours",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  db.DemandeChangementParada.push(newDemande);
+  writeData(db);
+
+  return NextResponse.json(newDemande);
 }
 
-// 🔵 PATCH: Update status and send email if needed
+// 🔵 PATCH
 export async function PATCH(req: Request) {
-  const { id, status, nouvelleParada } = await req.json();
+  const { id, status, nouvelleParada } = await req.json();
 
-  if (!id || !status) {
-    return NextResponse.json(
-      { error: "ID et statut requis." },
-      { status: 400 }
-    );
-  }
+  if (!id || !status) {
+    return NextResponse.json({ error: "ID et statut requis." }, { status: 400 });
+  }
 
-  try {
-    const updated = await prisma.demandeChangementParada.update({
-      where: { id },
-      data: { status, nouvelleParada },
-    });
+  const db = readData();
+  const index = db.DemandeChangementParada.findIndex(item => item.id === id);
 
-    let emailMessage = "Aucun email envoyé : pas d'adresse email fournie.";
+  if (index === -1) {
+    return NextResponse.json({ error: "Demande introuvable." }, { status: 404 });
+  }
 
-    if (status === "traité" && updated.email) {
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.SMTP_USER!,
-          pass: process.env.SMTP_PASS!,
-        },
-      });
+  const updatedDemande = {
+    ...db.DemandeChangementParada[index],
+    status,
+    nouvelleParada: nouvelleParada || db.DemandeChangementParada[index].nouvelleParada,
+    updatedAt: new Date().toISOString(),
+  };
 
-      try {
-        await transporter.sendMail({
-          from: `"Touil Brahim Service RH" <${process.env.SMTP_USER}>`,
-          to: updated.email,
-          subject: "Mise à jour de votre demande de changement de parada",
-          text: `Bonjour ${updated.prenom} ${updated.nom},\n\nVotre demande de changement de parada a été traitée avec succès. Votre nouvelle parada est : ${updated.nouvelleParada}.\n\nCordialement,\nCoficab`,
-        });
+  db.DemandeChangementParada[index] = updatedDemande;
+  writeData(db);
 
-        emailMessage = "Email envoyé avec succès !";
-        console.log("✅ Email envoyé à :", updated.email);
-      } catch (emailError) {
-        console.error("Erreur lors de l'envoi de l'email :", emailError);
-        emailMessage = "Erreur lors de l'envoi de l'email.";
-      }
-    }
+  let emailMessage = "Aucun email envoyé.";
+  if (status === "traité" && updatedDemande.email) {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.SMTP_USER!,
+        pass: process.env.SMTP_PASS!,
+      },
+    });
 
-    return NextResponse.json({
-      message: "Mise à jour réussie.",
-      emailStatus: emailMessage,
-      updated,
-    });
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour :", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la mise à jour." },
-      { status: 500 }
-    );
-  }
+    try {
+      await transporter.sendMail({
+        from: `"Service RH" <${process.env.SMTP_USER}>`,
+        to: updatedDemande.email,
+        subject: "Mise à jour de votre demande",
+        text: `Bonjour ${updatedDemande.prenom} ${updatedDemande.nom},\n\nVotre ancienne parada est : ${updatedDemande.ancienneParada}.\n\nVotre nouvelle parada est : ${updatedDemande.nouvelleParada}.\n\ncoordialement \ncoficab.`,
+      });
+      emailMessage = "Email envoyé avec succès !";
+    } catch (error) {
+      console.error("Erreur email:", error);
+      emailMessage = "Erreur lors de l'envoi de l'email.";
+    }
+  }
+
+  return NextResponse.json({
+    message: "Mise à jour réussie.",
+    emailStatus: emailMessage,
+    updated: updatedDemande,
+  });
 }
 
-// 🔵 DELETE: Delete a demande
+// 🔵 DELETE
 export async function DELETE(req: Request) {
-  const { id } = await req.json();
+  const { id } = await req.json();
 
-  if (!id) {
-    return NextResponse.json(
-      { error: "ID requis pour la suppression." },
-      { status: 400 }
-    );
-  }
+  if (!id) {
+    return NextResponse.json({ error: "ID requis." }, { status: 400 });
+  }
 
-  try {
-    await prisma.demandeChangementParada.delete({
-      where: { id },
-    });
+  const db = readData();
+  const originalLength = db.DemandeChangementParada.length;
+  db.DemandeChangementParada = db.DemandeChangementParada.filter(item => item.id !== id);
 
-    return NextResponse.json({ message: "Demande supprimée avec succès." });
-  } catch (error) {
-    console.error("Erreur lors de la suppression :", error);
-    return NextResponse.json(
-      { error: "Erreur lors de la suppression." },
-      { status: 500 }
-    );
-  }
+  if (db.DemandeChangementParada.length === originalLength) {
+    return NextResponse.json({ error: "Demande non trouvée." }, { status: 404 });
+  }
+
+  writeData(db);
+  return NextResponse.json({ message: "Demande supprimée avec succès." });
 }

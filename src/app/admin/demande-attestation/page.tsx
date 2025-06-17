@@ -121,7 +121,7 @@ export default function Page() {
         </select>
         <button
           onClick={loadDemandes}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+          className="bg-[#020495] text-white px-4 py-2 rounded hover:bg-blue-600 transition"
         >
           Filtrer
         </button>
@@ -129,11 +129,11 @@ export default function Page() {
 
       {/* Filter Cards */}
       <div className="flex gap-4 flex-wrap">
-        <div className="bg-blue-500 text-white rounded p-4 flex-1 min-w-[120px]">
+        <div className="bg-[#020495] text-white rounded p-4 flex-1 min-w-[120px]">
           <p className="text-xl font-bold">En cours</p>
           <p>{enCours}</p>
         </div>
-        <div className="bg-green-500 text-white rounded p-4 flex-1 min-w-[120px]">
+        <div className="bg-[#B87333] text-white rounded p-4 flex-1 min-w-[120px]">
           <p className="text-xl font-bold">Traité</p>
           <p>{traite}</p>
         </div>
