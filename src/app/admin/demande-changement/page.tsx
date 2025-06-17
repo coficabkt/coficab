@@ -9,6 +9,7 @@ import "react-toastify/dist/ReactToastify.css";
 import LogoLoader from "@/app/components/LogoLoader";
 import { DemandeChangementParada } from "../../../types";
 import ExportButtonsChangement from "@/app/components/ExportButtonsChangement";
+
 export default function DemandeChangementPage() {
   const [demandes, setDemandes] = useState<DemandeChangementParada[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +35,7 @@ export default function DemandeChangementPage() {
     });
     const res = await fetch(`/api/demande-changement-parada?${query}`);
     const data = await res.json();
-    setDemandes(data.demandes);
+    setDemandes(data.paginated);
     setTotal(data.total);
     setEnCours(data.enCours);
     setTraite(data.traite);
@@ -77,77 +78,34 @@ export default function DemandeChangementPage() {
   };
 
   return (
-    <main className="flex-1 p-4 space-y-6">
+    <main className="flex-1 p-6 space-y-8 bg-gray-50 min-h-screen">
       <ToastContainer position="bottom-right" autoClose={3000} />
-      <h1 className="text-2xl font-bold">Demandes de Changement de Parada</h1>
+      <h1 className="text-3xl font-bold text-[#B87333] text-bold">Demandes de Changement Des Stations Transport</h1>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 bg-gray-100 p-4 rounded">
-        <input
-          type="text"
-          placeholder="Nom"
-          value={filters.nom}
-          onChange={(e) => setFilters({ ...filters, nom: e.target.value })}
-          className="border p-2 rounded flex-1"
-        />
-        <input
-          type="text"
-          placeholder="Prénom"
-          value={filters.prenom}
-          onChange={(e) => setFilters({ ...filters, prenom: e.target.value })}
-          className="border p-2 rounded flex-1"
-        />
-        <input
-          type="text"
-          placeholder="Matricule"
-          value={filters.matricule}
-          onChange={(e) =>
-            setFilters({ ...filters, matricule: e.target.value })
-          }
-          className="border p-2 rounded flex-1"
-        />
-        <input
-          type="date"
-          value={filters.dateFrom}
-          onChange={(e) =>
-            setFilters({ ...filters, dateFrom: e.target.value })
-          }
-          className="border p-2 rounded"
-        />
-        <input
-          type="date"
-          value={filters.dateTo}
-          onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-          className="border p-2 rounded"
-        />
-        <select
-          value={perPage}
-          onChange={(e) => setPerPage(parseInt(e.target.value))}
-          className="border p-2 rounded"
-        >
-          {[5, 10, 25, 50].map((n) => (
-            <option key={n} value={n}>
-              {n} / page
-            </option>
-          ))}
+      <div className="flex flex-wrap gap-4 bg-white p-6 rounded-xl shadow-md">
+        <input type="text" placeholder="Nom" value={filters.nom} onChange={(e) => setFilters({ ...filters, nom: e.target.value })} className="border p-2 rounded flex-1" />
+        <input type="text" placeholder="Prénom" value={filters.prenom} onChange={(e) => setFilters({ ...filters, prenom: e.target.value })} className="border p-2 rounded flex-1" />
+        <input type="text" placeholder="Matricule" value={filters.matricule} onChange={(e) => setFilters({ ...filters, matricule: e.target.value })} className="border p-2 rounded flex-1" />
+        <input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} className="border p-2 rounded" />
+        <input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} className="border p-2 rounded" />
+        <select value={perPage} onChange={(e) => setPerPage(parseInt(e.target.value))} className="border p-2 rounded">
+          {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n} / page</option>)}
         </select>
-        <button
-          onClick={() => loadDemandes()}
-          className="bg-[#020495] text-white px-4 py-2 rounded hover:bg-blue-600 transition"
-        >
+        <button onClick={() => loadDemandes()} className="bg-[#020495] text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition font-semibold">
           Filtrer
         </button>
       </div>
 
       {/* Cards */}
       <div className="flex gap-4 flex-wrap">
-        <div className="bg-[#020495] text-white rounded p-4 flex-1 min-w-[120px]">
-          <p className="text-xl font-bold">En cours</p>
-          <p>{enCours}</p>
+        <div className="bg-[#020495] text-white rounded-2xl p-6 flex-1 min-w-[160px] shadow-md">
+          <p className="text-lg font-semibold">En cours</p>
+          <p className="text-2xl font-bold">{enCours}</p>
         </div>
-        <div className="bg-[#B87333] text-white rounded p-4 flex-1 min-w-[120px]">
-          <p className="text-xl font-bold">Traité</p>
-          <p>{traite}</p>
+        <div className="bg-[#B87333] text-white rounded-2xl p-6 flex-1 min-w-[160px] shadow-md">
+          <p className="text-lg font-semibold">Traité</p>
+          <p className="text-2xl font-bold">{traite}</p>
         </div>
       </div>
 
@@ -155,15 +113,15 @@ export default function DemandeChangementPage() {
       <ExportButtonsChangement demandes={demandes} />
 
       {/* Table or Loader */}
-      <div className="bg-white shadow rounded p-4 overflow-x-auto">
+      <div className="bg-white shadow-md rounded-xl p-6 overflow-x-auto">
         {loading ? (
           <div className="py-10 w-full flex justify-center">
             <LogoLoader />
           </div>
         ) : (
-          <table className="min-w-full text-sm">
+          <table className="min-w-full text-sm table-auto">
             <thead>
-              <tr className="text-left font-semibold whitespace-nowrap">
+              <tr className="text-left font-semibold text-gray-700 border-b">
                 <th>Nom</th>
                 <th>Prénom</th>
                 <th>Matricule</th>
@@ -177,36 +135,30 @@ export default function DemandeChangementPage() {
             </thead>
             <tbody>
               {demandes.map((d) => (
-                <tr key={d.id} className="border-t">
+                <tr key={d.id} className="border-t hover:bg-gray-50">
                   <td>{d.nom}</td>
                   <td>{d.prenom}</td>
                   <td>{d.matricule}</td>
                   <td>{d.ancienneParada}</td>
                   <td>{d.nouvelleParada}</td>
                   <td>{d.email}</td>
-                  <td>{d.status}</td>
-                  <td className="flex items-center gap-1 whitespace-nowrap">
-                    <FaClock className="text-gray-500" />
-                    {formatDistanceToNow(new Date(d.createdAt), {
-                      addSuffix: true,
-                    })}
+                  <td>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${d.status === "traité" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+                      {d.status}
+                    </span>
                   </td>
-                  <td className="flex gap-2 items-center whitespace-nowrap">
+                  <td className="flex items-center gap-1 whitespace-nowrap text-gray-500">
+                    <FaClock />
+                    {formatDistanceToNow(new Date(d.createdAt), { addSuffix: true })}
+                  </td>
+                  <td className="flex gap-3 items-center whitespace-nowrap">
                     {d.status === "en cours" && (
-                      <button
-                        onClick={() => handleTraiter(d.id)}
-                        className="text-green-500 hover:text-green-700 transition"
-                        title="Traiter"
-                      >
-                        <FaCheckCircle />
+                      <button onClick={() => handleTraiter(d.id)} className="text-green-500 hover:text-green-700 transition" title="Traiter">
+                        <FaCheckCircle size={18} />
                       </button>
                     )}
-                    <button
-                      onClick={() => handleDelete(d.id)}
-                      className="text-red-500 hover:text-red-700 transition"
-                      title="Supprimer"
-                    >
-                      <FaTrash />
+                    <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700 transition" title="Supprimer">
+                      <FaTrash size={18} />
                     </button>
                   </td>
                 </tr>
@@ -217,29 +169,12 @@ export default function DemandeChangementPage() {
       </div>
 
       {/* Pagination */}
-      <div className="flex justify-between mt-4">
-        <button
-          onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-          disabled={page <= 1}
-          className={`px-4 py-2 rounded ${
-            page <= 1
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-blue-500 text-white hover:bg-blue-600"
-          }`}
-        >
+      <div className="flex justify-between items-center mt-6">
+        <button onClick={() => setPage((prev) => Math.max(1, prev - 1))} disabled={page <= 1} className={`px-4 py-2 rounded-xl font-medium ${page <= 1 ? "bg-gray-300 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}>
           Précédent
         </button>
-        <button
-          onClick={() =>
-            setPage((prev) => (page * perPage >= total ? prev : prev + 1))
-          }
-          disabled={page * perPage >= total}
-          className={`px-4 py-2 rounded ${
-            page * perPage >= total
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-blue-500 text-white hover:bg-blue-600"
-          }`}
-        >
+        <span className="text-gray-600 font-medium">Page {page}</span>
+        <button onClick={() => setPage((prev) => (page * perPage >= total ? prev : prev + 1))} disabled={page * perPage >= total} className={`px-4 py-2 rounded-xl font-medium ${page * perPage >= total ? "bg-gray-300 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}>
           Suivant
         </button>
       </div>
