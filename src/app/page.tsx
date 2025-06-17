@@ -312,14 +312,14 @@ export default function DemandePage() {
               : "bg-white text-[#B87333] border border-[#B87333]"
           }`}
         >
-          Changement des stations de transport
+          Changement Des Stations De Transport
         </button> */}
       </div>
 
       <div className="w-full max-w-2xl bg-white rounded-xl shadow-md p-6">
         {formType === "attestation" ? (
            <form onSubmit={handleChangementSubmit} className="space-y-3">
-            <h2 className="text-2xl font-semibold text-center mb-4 text-slate-800">
+            <h2 className="text-2xl font-semibold text-center mb-4 text-slate-800 bg-[#020495] text-white rounded-md p-2">
               Changement Des Stations De Transport
             </h2>
             {[
