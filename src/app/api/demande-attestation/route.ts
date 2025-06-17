@@ -3,7 +3,7 @@ import { readData, writeData } from "@/app/lib/fileStorage";
 import nodemailer from "nodemailer";
 import { DemandeAttestation } from "@/types";
 
-// GET: Filter & Pagination
+// 🔵 GET: Filter & Pagination
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1", 10);
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
     const db = readData();
     const all = db.DemandeAttestation || [];
 
-    const demandes = all.filter((d: DemandeAttestation) => {
+    const filtered = all.filter((d: DemandeAttestation) => {
       const matchNom = !filters.nom || d.nom.toLowerCase().includes(filters.nom);
       const matchPrenom = !filters.prenom || d.prenom.toLowerCase().includes(filters.prenom);
       const matchMatricule = !filters.matricule || d.matricule.toLowerCase().includes(filters.matricule);
@@ -32,13 +32,13 @@ export async function GET(req: Request) {
       return matchNom && matchPrenom && matchMatricule && matchDate;
     });
 
-    const total = demandes.length;
-    const paginated = demandes
+    const total = filtered.length;
+    const paginated = filtered
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice((page - 1) * perPage, page * perPage);
 
-    const enCours = demandes.filter((d) => d.status === "en cours").length;
-    const traite = demandes.filter((d) => d.status === "traité").length;
+    const enCours = filtered.filter((d) => d.status === "en cours").length;
+    const traite = filtered.filter((d) => d.status === "traité").length;
 
     return NextResponse.json({ total, demandes: paginated, enCours, traite });
   } catch {
@@ -46,7 +46,7 @@ export async function GET(req: Request) {
   }
 }
 
-// POST: Create
+// 🔵 POST: Create a new demande
 export async function POST(req: Request) {
   const data = await req.json();
 
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
   }
 }
 
-// PATCH: Update status and send email
+// 🔵 PATCH: Update status and send notification email
 export async function PATCH(req: Request) {
   const { id, status }: { id: string; status: string } = await req.json();
 
@@ -104,13 +104,9 @@ export async function PATCH(req: Request) {
       try {
         await transporter.sendMail({
           from: `"Service RH" <${process.env.SMTP_USER}>`,
-<<<<<<< HEAD
           to: demande.email,
-=======
-          to: updated.email,
->>>>>>> 319e0a1dd3d43c0c474afb79499dc71335505adf
           subject: "Mise à jour de votre demande d'attestation",
-          text: `Bonjour ${demande.prenom} ${demande.nom},\n\nVotre demande est maintenant : ${demande.status} vos documents sont disponibles.\n\ncoordialement\n coficab.`,
+          text: `Bonjour ${demande.prenom} ${demande.nom},\n\nVotre demande est maintenant : ${demande.status}.\nVos documents sont disponibles.\n\nCordialement,\nCoficab.`,
         });
 
         emailMessage = "Email envoyé avec succès !";
@@ -125,7 +121,7 @@ export async function PATCH(req: Request) {
   }
 }
 
-// DELETE: Delete demande
+// 🔵 DELETE: Remove demande by ID
 export async function DELETE(req: Request) {
   const { id }: { id: string } = await req.json();
 
