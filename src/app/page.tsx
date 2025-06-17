@@ -28,7 +28,7 @@ const changementSchema = z.object({
 });
 
 export default function DemandePage() {
-  const [formType, _] = useState<"attestation" | "changement">("changement");
+  const [formType, setFormType] = useState<"attestation" | "changement">("changement");
 
   const [demandeForm, setDemandeForm] = useState({
     nom: "",
@@ -319,7 +319,7 @@ export default function DemandePage() {
       <div className="w-full max-w-2xl bg-white rounded-xl shadow-md p-6">
         {formType === "attestation" ? (
            <form onSubmit={handleChangementSubmit} className="space-y-3">
-            <h2 className="text-2xl font-semibold text-center mb-4 text-slate-800 bg-[#020495] text-white rounded-md p-2">
+            <h2 onClick={() => setFormType("changement")} className="text-2xl font-semibold text-center mb-4 text-slate-800 bg-[#020495] text-white rounded-md p-2">
               Changement Des Stations De Transport
             </h2>
             {[
