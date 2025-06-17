@@ -81,8 +81,18 @@ export async function PATCH(req: Request) {
     updatedAt: new Date().toISOString(),
   };
 
+<<<<<<< HEAD
   db.DemandeChangementParada[index] = updatedDemande;
   writeData(db);
+=======
+      try {
+        await transporter.sendMail({
+          from: `"Service RH" <${process.env.SMTP_USER}>`,
+          to: updated.email,
+          subject: "Mise à jour de votre demande de changement de parada",
+          text: `Bonjour ${updated.prenom} ${updated.nom},\n\nVotre demande de changement de parada a été traitée avec succès. Votre nouvelle parada est : ${updated.nouvelleParada}.\n\nCordialement,\nCoficab`,
+        });
+>>>>>>> 319e0a1dd3d43c0c474afb79499dc71335505adf
 
   let emailMessage = "Aucun email envoyé.";
   if (status === "traité" && updatedDemande.email) {

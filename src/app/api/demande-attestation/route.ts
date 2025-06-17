@@ -104,7 +104,11 @@ export async function PATCH(req: Request) {
       try {
         await transporter.sendMail({
           from: `"Service RH" <${process.env.SMTP_USER}>`,
+<<<<<<< HEAD
           to: demande.email,
+=======
+          to: updated.email,
+>>>>>>> 319e0a1dd3d43c0c474afb79499dc71335505adf
           subject: "Mise à jour de votre demande d'attestation",
           text: `Bonjour ${demande.prenom} ${demande.nom},\n\nVotre demande est maintenant : ${demande.status} vos documents sont disponibles.\n\ncoordialement\n coficab.`,
         });
