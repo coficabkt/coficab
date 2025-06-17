@@ -28,7 +28,7 @@ const changementSchema = z.object({
 });
 
 export default function DemandePage() {
-  const [formType, setFormType] = useState<"attestation" | "changement">("changement");
+  const [formType, setFormType] = useState<"attestation" | "changement">("attestation");
 
   const [demandeForm, setDemandeForm] = useState({
     nom: "",
