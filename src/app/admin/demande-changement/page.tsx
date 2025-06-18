@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { FaTrash, FaCheckCircle, FaClock } from "react-icons/fa";
+import { FaTrash, FaCheckCircle, FaClock, FaEdit } from "react-icons/fa";
 import { formatDistanceToNow } from "date-fns";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -13,26 +13,21 @@ import ExportButtonsChangement from "@/app/components/ExportButtonsChangement";
 export default function DemandeChangementPage() {
   const [demandes, setDemandes] = useState<DemandeChangementParada[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    nom: "",
-    prenom: "",
-    matricule: "",
-    dateFrom: "",
-    dateTo: "",
-  });
+  const [filters, setFilters] = useState({ nom: "", prenom: "", matricule: "", dateFrom: "", dateTo: "" });
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [total, setTotal] = useState(0);
   const [enCours, setEnCours] = useState(0);
   const [traite, setTraite] = useState(0);
 
+  const [selectedDemande, setSelectedDemande] = useState<DemandeChangementParada | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [nouvelleParadaInput, setNouvelleParadaInput] = useState("");
+
   const loadDemandes = useCallback(async () => {
     setLoading(true);
-    const query = new URLSearchParams({
-      ...filters,
-      page: page.toString(),
-      perPage: perPage.toString(),
-    });
+    const query = new URLSearchParams({ ...filters, page: page.toString(), perPage: perPage.toString() });
     const res = await fetch(`/api/demande-changement-parada?${query}`);
     const data = await res.json();
     setDemandes(data.paginated);
@@ -42,9 +37,7 @@ export default function DemandeChangementPage() {
     setLoading(false);
   }, [filters, page, perPage]);
 
-  useEffect(() => {
-    loadDemandes();
-  }, [loadDemandes]);
+  useEffect(() => { loadDemandes(); }, [loadDemandes]);
 
   const handleTraiter = async (id: string) => {
     const res = await fetch("/api/demande-changement-parada", {
@@ -60,14 +53,23 @@ export default function DemandeChangementPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const confirm = window.confirm("Êtes-vous sûr de vouloir supprimer ?");
-    if (!confirm) return;
+  const confirmDelete = (demande: DemandeChangementParada) => {
+    setSelectedDemande(demande);
+    setShowDeleteModal(true);
+  };
 
+  const openUpdate = (demande: DemandeChangementParada) => {
+    setSelectedDemande(demande);
+    setNouvelleParadaInput(demande.nouvelleParada || "");
+    setShowUpdateModal(true);
+  };
+
+  const confirmDeleteAction = async () => {
+    if (!selectedDemande) return;
     const res = await fetch("/api/demande-changement-parada", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id: selectedDemande.id }),
     });
     if (res.ok) {
       toast.success("Demande supprimée !");
@@ -75,14 +77,35 @@ export default function DemandeChangementPage() {
     } else {
       toast.error("Erreur lors de la suppression !");
     }
+    setShowDeleteModal(false);
+    setSelectedDemande(null);
+  };
+
+  const handleUpdateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDemande) return;
+
+    const res = await fetch("/api/demande-changement-parada", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: selectedDemande.id, nouvelleParada: nouvelleParadaInput }),
+    });
+
+    if (res.ok) {
+      toast.success("Mise à jour réussie !");
+      setShowUpdateModal(false);
+      setSelectedDemande(null);
+      loadDemandes();
+    } else {
+      toast.error("Erreur lors de la mise à jour !");
+    }
   };
 
   return (
     <main className="flex-1 p-6 space-y-8 bg-gray-50 min-h-screen">
       <ToastContainer position="bottom-right" autoClose={3000} />
-      <h1 className="text-3xl font-bold text-[#B87333] text-bold">Demandes de Changement Des Stations Transport</h1>
+      <h1 className="text-3xl font-bold text-[#B87333]">Demandes de Changement Des Stations Transport</h1>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-4 bg-white p-6 rounded-xl shadow-md">
         <input type="text" placeholder="Nom" value={filters.nom} onChange={(e) => setFilters({ ...filters, nom: e.target.value })} className="border p-2 rounded flex-1" />
         <input type="text" placeholder="Prénom" value={filters.prenom} onChange={(e) => setFilters({ ...filters, prenom: e.target.value })} className="border p-2 rounded flex-1" />
@@ -92,12 +115,9 @@ export default function DemandeChangementPage() {
         <select value={perPage} onChange={(e) => setPerPage(parseInt(e.target.value))} className="border p-2 rounded">
           {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n} / page</option>)}
         </select>
-        <button onClick={() => loadDemandes()} className="bg-[#020495] text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition font-semibold">
-          Filtrer
-        </button>
+        <button onClick={loadDemandes} className="bg-[#020495] text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition font-semibold">Filtrer</button>
       </div>
 
-      {/* Cards */}
       <div className="flex gap-4 flex-wrap">
         <div className="bg-[#020495] text-white rounded-2xl p-6 flex-1 min-w-[160px] shadow-md">
           <p className="text-lg font-semibold">En cours</p>
@@ -109,10 +129,8 @@ export default function DemandeChangementPage() {
         </div>
       </div>
 
-      {/* Export Buttons */}
       <ExportButtonsChangement demandes={demandes} />
 
-      {/* Table or Loader */}
       <div className="bg-white shadow-md rounded-xl p-6 overflow-x-auto">
         {loading ? (
           <div className="py-10 w-full flex justify-center">
@@ -136,7 +154,7 @@ export default function DemandeChangementPage() {
             <tbody>
               {demandes.map((d) => (
                 <tr key={d.id} className="border-t hover:bg-gray-50">
-                  <td>{d.nom}</td>
+                  <td className="px-3 py-2">{d.nom}</td>
                   <td>{d.prenom}</td>
                   <td>{d.matricule}</td>
                   <td>{d.ancienneParada}</td>
@@ -147,20 +165,26 @@ export default function DemandeChangementPage() {
                       {d.status}
                     </span>
                   </td>
-                  <td className="flex items-center gap-1 whitespace-nowrap text-gray-500">
-                    <FaClock />
-                    {formatDistanceToNow(new Date(d.createdAt), { addSuffix: true })}
-                  </td>
-                  <td className="flex gap-3 items-center whitespace-nowrap">
-                    {d.status === "en cours" && (
-                      <button onClick={() => handleTraiter(d.id)} className="text-green-500 hover:text-green-700 transition" title="Traiter">
-                        <FaCheckCircle size={18} />
-                      </button>
-                    )}
-                    <button onClick={() => handleDelete(d.id)} className="text-red-500 hover:text-red-700 transition" title="Supprimer">
-                      <FaTrash size={18} />
-                    </button>
-                  </td>
+                  <td className="whitespace-nowrap text-gray-500 px-3 py-2">
+  <div className="flex items-center gap-1">
+    <FaClock /> {formatDistanceToNow(new Date(d.createdAt), { addSuffix: true })}
+  </div>
+</td>
+                  <td className="whitespace-nowrap px-3 py-2">
+  <div className="flex items-center gap-3">
+    {d.status === "en cours" && (
+      <button onClick={() => handleTraiter(d.id)} className="text-green-500 hover:text-green-700 transition" title="Traiter">
+        <FaCheckCircle size={18} />
+      </button>
+    )}
+    <button onClick={() => openUpdate(d)} className="text-blue-500 hover:text-blue-700 transition" title="Modifier">
+      <FaEdit size={18} />
+    </button>
+    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); confirmDelete(d); }} className="text-red-500 hover:text-red-700 transition" title="Supprimer">
+      <FaTrash size={18} />
+    </button>
+  </div>
+</td>
                 </tr>
               ))}
             </tbody>
@@ -168,16 +192,44 @@ export default function DemandeChangementPage() {
         )}
       </div>
 
-      {/* Pagination */}
       <div className="flex justify-between items-center mt-6">
-        <button onClick={() => setPage((prev) => Math.max(1, prev - 1))} disabled={page <= 1} className={`px-4 py-2 rounded-xl font-medium ${page <= 1 ? "bg-gray-300 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}>
-          Précédent
-        </button>
+        <button onClick={() => setPage((prev) => Math.max(1, prev - 1))} disabled={page <= 1} className={`px-4 py-2 rounded-xl font-medium ${page <= 1 ? "bg-gray-300 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}>Précédent</button>
         <span className="text-gray-600 font-medium">Page {page}</span>
-        <button onClick={() => setPage((prev) => (page * perPage >= total ? prev : prev + 1))} disabled={page * perPage >= total} className={`px-4 py-2 rounded-xl font-medium ${page * perPage >= total ? "bg-gray-300 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}>
-          Suivant
-        </button>
+        <button onClick={() => setPage((prev) => (page * perPage >= total ? prev : prev + 1))} disabled={page * perPage >= total} className={`px-4 py-2 rounded-xl font-medium ${page * perPage >= total ? "bg-gray-300 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}>Suivant</button>
       </div>
-    </main>
+
+      {showUpdateModal && selectedDemande && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-[90%] max-w-md">
+            <h2 className="text-lg font-semibold mb-4 text-blue-600">Modifier la demande</h2>
+            <form onSubmit={handleUpdateSubmit} className="space-y-4">
+              <input
+                type="text"
+                value={nouvelleParadaInput}
+                onChange={(e) => setNouvelleParadaInput(e.target.value)}
+                className="w-full border p-2 rounded"
+              />
+              <div className="flex justify-end gap-4">
+                <button onClick={() => setShowUpdateModal(false)} type="button" className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Annuler</button>
+                <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Mettre à jour</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    {showDeleteModal && selectedDemande && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg shadow-xl p-6 w-[90%] max-w-md">
+      <h2 className="text-lg font-semibold mb-4 text-red-600">Confirmation de suppression</h2>
+      <p className="mb-4">Êtes-vous sûr de vouloir supprimer la demande de <strong>{selectedDemande.nom} {selectedDemande.prenom}</strong> ?</p>
+      <div className="flex justify-end gap-4">
+        <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Annuler</button>
+        <button onClick={confirmDeleteAction} className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">Supprimer</button>
+      </div>
+    </div>
+  </div>
+)}
+
+</main>
   );
 }

@@ -72,8 +72,8 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const { id, status, nouvelleParada } = await req.json();
 
-  if (!id || !status) {
-    return NextResponse.json({ error: "ID et statut requis." }, { status: 400 });
+  if (!id || (!status && !nouvelleParada)) {
+    return NextResponse.json({ error: "ID et au moins une mise à jour requise." }, { status: 400 });
   }
 
   const db = readData();
@@ -85,7 +85,7 @@ export async function PATCH(req: Request) {
 
   const updatedDemande = {
     ...db.DemandeChangementParada[index],
-    status,
+    status: status || db.DemandeChangementParada[index].status,
     nouvelleParada: nouvelleParada || db.DemandeChangementParada[index].nouvelleParada,
     updatedAt: new Date().toISOString(),
   };
@@ -94,7 +94,7 @@ export async function PATCH(req: Request) {
   writeData(db);
 
   let emailMessage = "Aucun email envoyé.";
-  if (status === "traité" && updatedDemande.email) {
+  if ((status === "traité" || updatedDemande.status === "traité") && updatedDemande.email) {
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -108,7 +108,7 @@ export async function PATCH(req: Request) {
         from: `"Service RH" <${process.env.SMTP_USER}>`,
         to: updatedDemande.email,
         subject: "Mise à jour de votre demande",
-        text: `Bonjour ${updatedDemande.prenom} ${updatedDemande.nom},\n\nVotre ancienne parada est : ${updatedDemande.ancienneParada}.\nVotre nouvelle parada est : ${updatedDemande.nouvelleParada}.\n\nCordialement,\nCoficab.`,
+        text: `Bonjour ${updatedDemande.prenom} ${updatedDemande.nom},\nVotre demande a été ${updatedDemande.status}\nVotre ancienne parada est : ${updatedDemande.ancienneParada}.\nVotre nouvelle parada est : ${updatedDemande.nouvelleParada}.\n\nCordialement,\nHR Services`,
       });
       emailMessage = "Email envoyé avec succès !";
     } catch (error) {
