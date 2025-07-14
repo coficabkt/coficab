@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import prisma from "../../lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "GET") {
@@ -16,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const skip = (parseInt(page as string) - 1) * parseInt(perPage as string);
     const take = parseInt(perPage as string);
 
-    const where: any = {
+    const where: Prisma.DemandeChangementParadaWhereInput = {
       nom: { contains: nom as string, mode: "insensitive" },
       prenom: { contains: prenom as string, mode: "insensitive" },
       matricule: { contains: matricule as string, mode: "insensitive" },
@@ -48,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!id) return res.status(400).json({ message: "Missing ID" });
 
-    const dataToUpdate: any = {};
+    const dataToUpdate: Prisma.DemandeChangementParadaUpdateInput = {};
     if (status) dataToUpdate.status = status;
     if (nouvelleParada !== undefined) dataToUpdate.nouvelleParada = nouvelleParada;
 
