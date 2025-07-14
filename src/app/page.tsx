@@ -62,7 +62,7 @@ export default function DemandePage() {
     "Qualite",
     "Finance",
     "Rh",
-    "HSE",
+    "Hse",
     "Manufacturing",
   ];
 
