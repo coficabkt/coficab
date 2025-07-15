@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import prisma from "../../lib/prisma";
+import type { Prisma } from "@prisma/client";
 
 // 🔸 GET
 export async function GET(req: Request) {
@@ -13,7 +14,7 @@ export async function GET(req: Request) {
   const dateFrom = searchParams.get("dateFrom");
   const dateTo = searchParams.get("dateTo");
 
-  const filters: any = {};
+  const filters: Prisma.DemandeChangementParadaWhereInput = {};
   if (nom) filters.nom = { contains: nom, mode: "insensitive" };
   if (prenom) filters.prenom = { contains: prenom, mode: "insensitive" };
   if (matricule) filters.matricule = { contains: matricule, mode: "insensitive" };
@@ -23,7 +24,7 @@ export async function GET(req: Request) {
     if (dateTo) filters.createdAt.lte = new Date(dateTo);
   }
 
-  const [total, enCours, traite, paginated] = await Promise.all([
+  const [total, enCours, traite, demandes] = await Promise.all([
     prisma.demandeChangementParada.count({ where: filters }),
     prisma.demandeChangementParada.count({ where: { ...filters, status: "en cours" } }),
     prisma.demandeChangementParada.count({ where: { ...filters, status: "traité" } }),
@@ -35,7 +36,7 @@ export async function GET(req: Request) {
     }),
   ]);
 
-  return NextResponse.json({ total, paginated, enCours, traite });
+  return NextResponse.json({ total, demandes, enCours, traite });
 }
 
 // 🔸 POST
@@ -59,7 +60,10 @@ export async function PATCH(req: Request) {
   const { id, status, nouvelleParada } = await req.json();
 
   if (!id || (!status && !nouvelleParada)) {
-    return NextResponse.json({ error: "ID et au moins une mise à jour requise." }, { status: 400 });
+    return NextResponse.json(
+      { error: "ID et au moins une mise à jour requise." },
+      { status: 400 }
+    );
   }
 
   const updated = await prisma.demandeChangementParada.update({
@@ -87,16 +91,24 @@ export async function PATCH(req: Request) {
         from: `"Service RH" <${process.env.SMTP_USER}>`,
         to: updated.email,
         subject: "Mise à jour de votre demande",
-        text: `Bonjour ${updated.prenom} ${updated.nom},\nVotre demande a été ${updated.status}\nVotre ancienne parada est : ${updated.ancienneParada}.\nVotre nouvelle parada est : ${updated.nouvelleParada}.\n\nCordialement,\nHR Services`,
+        text: `Bonjour ${updated.prenom} ${updated.nom},\n\nVotre demande a été ${updated.status}.\n\nAncienne parada : ${updated.ancienneParada}\nNouvelle parada : ${updated.nouvelleParada}\n\nCordialement,\nService RH`,
       });
       emailMessage = "Email envoyé avec succès !";
-    } catch (error) {
-      console.error("Erreur email:", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Erreur email:", error.message);
+      } else {
+        console.error("Erreur email inconnue:", error);
+      }
       emailMessage = "Erreur lors de l'envoi de l'email.";
     }
   }
 
-  return NextResponse.json({ message: "Mise à jour réussie.", emailStatus: emailMessage, updated });
+  return NextResponse.json({
+    message: "Mise à jour réussie.",
+    emailStatus: emailMessage,
+    updated,
+  });
 }
 
 // 🔸 DELETE
@@ -107,6 +119,12 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "ID requis." }, { status: 400 });
   }
 
-  const deleted = await prisma.demandeChangementParada.delete({ where: { id } });
-  return NextResponse.json({ message: "Demande supprimée avec succès.", deleted });
+  const deleted = await prisma.demandeChangementParada.delete({
+    where: { id },
+  });
+
+  return NextResponse.json({
+    message: "Demande supprimée avec succès.",
+    deleted,
+  });
 }

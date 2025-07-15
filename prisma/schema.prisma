@@ -29,8 +29,8 @@ model DemandeChangementParada {
   matricule       String
   ancienneParada  String
   nouvelleParada  String
-  departement     String  // Added department field
-  status          String   @default("en cours")
+  departement     String?
+  status          String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
