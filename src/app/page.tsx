@@ -53,17 +53,16 @@ export default function DemandePage() {
   const [isSubmittingChangement, setIsSubmittingChangement] = useState(false);
 
   const departments = [
-    "Extrusion",
-    "Metal",
-    "Achat",
-    "It",
-    "Ip",
-    "Maintenance",
-    "Qualite",
-    "Finance",
-    "Rh",
-    "HSE",
-    "Manufacturing",
+    "extrusion",
+    "metal",
+    "achat",
+    "it",
+    "ip",
+    "maintenance",
+    "qualite",
+    "finance",
+    "rh",
+    "manufacturing",
   ];
 
   const paradas = [
