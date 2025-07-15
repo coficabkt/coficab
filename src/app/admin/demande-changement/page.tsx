@@ -25,6 +25,7 @@ export default function Page() {
   const loadDemandes = useCallback(async () => {
     setLoading(true);
     const query = new URLSearchParams({ ...filters, page: page.toString(), perPage: perPage.toString() });
+    console.log(total)
     try {
       const res = await fetch(`/api/demande-changement-parada?${query}`);
       if (!res.ok) throw new Error("Erreur de chargement");
