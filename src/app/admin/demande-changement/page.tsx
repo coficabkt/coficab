@@ -13,7 +13,7 @@ export default function Page() {
   const [demandes, setDemandes] = useState<DemandeChangementParada[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ nom: "", prenom: "", matricule: "", dateFrom: "", dateTo: "" });
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [total, setTotal] = useState(0);
   const [enCours, setEnCours] = useState(0);
