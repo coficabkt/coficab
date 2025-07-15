@@ -91,7 +91,7 @@ export async function PATCH(req: Request) {
         from: `"Service RH" <${process.env.SMTP_USER}>`,
         to: updated.email,
         subject: "Mise à jour de votre demande",
-        text: `Bonjour ${updated.prenom} ${updated.nom},\n\nVotre demande a été ${updated.status}.\n\nAncienne parada : ${updated.ancienneParada}\nNouvelle parada : ${updated.nouvelleParada}\n\nCordialement,\nService RH`,
+        text: `Bonjour ${updated.prenom} ${updated.nom},\n\nVotre demande a été ${updated.status}.\n\nAncienne parada : ${updated.ancienneParada}\nNouvelle parada : ${updated.nouvelleParada}\n\nCordialement,\nHR Services.`,
       });
       emailMessage = "Email envoyé avec succès !";
     } catch (error: unknown) {
